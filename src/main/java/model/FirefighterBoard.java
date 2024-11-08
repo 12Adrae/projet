@@ -10,7 +10,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   private final int rowCount;
   private final int initialFireCount;
   private final int initialFirefighterCount;
-  private final TargetStrategy targetStrategy = new TargetStrategy();
+  private final model.TargetStrategy targetStrategy = new model.TargetStrategy();
   private List<Position> firefighterPositions;
   private Set<Position> firePositions;
   private Map<Position, List<Position>> neighbors = new HashMap();
