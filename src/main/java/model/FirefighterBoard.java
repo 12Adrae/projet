@@ -50,11 +50,11 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         firefighterPositions = new ArrayList<>();
         firePositions = new HashSet<>();
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 50; i++) {
             clouds.add(new Cloud(randomPosition()));
         }
 
-        for (int index = 0; index < initialFireCount * 4; index++)
+        for (int index = 0; index < initialFireCount * 20; index++)
             firePositions.add(randomPosition());
         fire = new Fire(firePositions);
 
@@ -116,6 +116,22 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     public List<Position> updateToNextGeneration() {
         List<Position> modifiedPositions = updateFirefighters();
         modifiedPositions.addAll(updateFires());
+        modifiedPositions.addAll(updateClouds(neighbors));
+
+// Parcourt chaque nuage dans la liste des nuages
+// Pour chaque nuage, on vérifie s'il se trouve à une position où il y a un feu.
+// Si un feu est présent à la position du nuage, ce dernier l'éteint en appelant la méthode extinguishFire.
+// La position du nuage (où le feu a été éteint) est ajoutée à la liste des positions modifiées.
+        for (Cloud cloud : clouds) {
+            Position cloudPosition = cloud.getPosition();
+            if (this.getState(cloudPosition).contains(ModelElement.FIRE)) {
+                cloud.extinguishFire(fire);
+                modifiedPositions.add(cloudPosition);
+            }
+        }
+
+        step++;
+        return modifiedPositions;
     }
 
 
@@ -126,7 +142,12 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         if (step % 2 == 0) {
             List<Position> newFirePositions = new ArrayList<>();
             for (Position fire : firePositions) {
-                newFirePositions.addAll(neighbors.get(fire));
+                //newFirePositions.addAll(neighbors.get(fire));
+                for (Position neighbor : neighbors.get(fire)) {
+                    if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor))) {
+                        newFirePositions.add(neighbor);
+                    }
+                }
             }
             firePositions.addAll(newFirePositions);
             modifiedPositions.addAll(newFirePositions);
@@ -219,4 +240,21 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         }
     }
 
+    private List<Position> updateClouds (Map < Position, List < Position >> neighbors){
+        List<Position> modifiedPositions = new ArrayList<>();
+        for (Cloud cloud : clouds) {
+            Position oldPosition = cloud.getPosition();
+            cloud.move(neighbors);
+            Position newPosition = cloud.getPosition();
+
+            if (!oldPosition.equals(newPosition)) {
+                fire.extinguish(oldPosition);
+                modifiedPositions.add(oldPosition);
+
+                fire.extinguish(newPosition);
+                modifiedPositions.add(newPosition);
+            }
+        }
+        return modifiedPositions;
+    }
 }

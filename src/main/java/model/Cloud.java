@@ -43,6 +43,11 @@ public class Cloud {
         }
     }
 
+    public void moveTo(Position target) {
+        this.position = target;
+    }
+
+
     public void extinguishFire(Fire fire) {
         fire.extinguish(position);
     }
