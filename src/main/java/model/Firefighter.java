@@ -12,7 +12,7 @@ import java.util.Set;
  *
  */
 
-public abstract class Firefighter {
+public class Firefighter {
     private Position position;
     final model.TargetStrategy targetStrategy;
 

@@ -49,7 +49,7 @@ public class Controller {
   }
 
   private void initializePlayAndPauseToggleButtons() {
-    ToggleGroup toggleGroup = new PersistentToggleGroup();
+    ToggleGroup toggleGroup = new ToggleGroup();
     toggleGroup.getToggles().addAll(playToggleButton, pauseToggleButton);
     pauseToggleButton.setSelected(true);
   }
@@ -58,10 +58,10 @@ public class Controller {
     this.board = requireNonNull(firefighterBoard, "firefighter.model is null");
   }
 
-  private void updateBoard(){
+  private void updateBoard() {
     List<Position> updatedPositions = board.updateToNextGeneration();
     List<Pair<Position, ViewElement>> updatedSquares = new ArrayList<>();
-    for(Position updatedPosition : updatedPositions){
+    for (Position updatedPosition : updatedPositions) {
       List<ModelElement> squareState = board.getState(updatedPosition);
       ViewElement viewElement = getViewElement(squareState);
       updatedSquares.add(new Pair<>(updatedPosition, viewElement));
@@ -70,22 +70,25 @@ public class Controller {
     updateGenerationLabel(board.stepNumber());
   }
 
-  private void repaintGrid(){
+  private void repaintGrid() {
     int columnCount = board.columnCount();
     int rowCount = board.rowCount();
     ViewElement[][] viewElements = new ViewElement[rowCount][columnCount];
-    for(int column = 0; column < columnCount; column++)
-      for(int row = 0; row < rowCount; row++)
+    for (int column = 0; column < columnCount; column++)
+      for (int row = 0; row < rowCount; row++)
         viewElements[row][column] = getViewElement(board.getState(new Position(row, column)));
     grid.repaint(viewElements);
     updateGenerationLabel(board.stepNumber());
   }
 
   private ViewElement getViewElement(List<ModelElement> squareState) {
-    if(squareState.contains(ModelElement.FIREFIGHTER)){
+    if (squareState.contains(ModelElement.MOTORIZED_FIREFIGHTER)) {
+      return ViewElement.MOTORIZED_FIREFIGHTER;
+    }
+    if (squareState.contains(ModelElement.FIREFIGHTER)) {
       return ViewElement.FIREFIGHTER;
     }
-    if (squareState.contains(ModelElement.FIRE)){
+    if (squareState.contains(ModelElement.FIRE)) {
       return ViewElement.FIRE;
     }
     return ViewElement.EMPTY;
@@ -93,8 +96,7 @@ public class Controller {
 
   private void initializeTimeline() {
     Duration duration = new Duration(Controller.PERIOD_IN_MILLISECONDS);
-    EventHandler<ActionEvent> eventHandler =
-            event -> updateBoard();
+    EventHandler<ActionEvent> eventHandler = event -> updateBoard();
     KeyFrame keyFrame = new KeyFrame(duration, eventHandler);
     timeline = new Timeline(keyFrame);
     timeline.setCycleCount(Animation.INDEFINITE);
@@ -123,8 +125,7 @@ public class Controller {
     repaintGrid();
   }
 
-  public void initialize(int squareWidth, int squareHeight, int columnCount,
-                                int rowCount, int initialFireCount, int initialFirefighterCount) {
+  public void initialize(int squareWidth, int squareHeight, int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
     grid.setDimensions(columnCount, rowCount, squareWidth, squareHeight);
     this.setModel(new FirefighterBoard(columnCount, rowCount, initialFireCount, initialFirefighterCount));
     repaintGrid();
@@ -135,7 +136,7 @@ public class Controller {
     updateBoard();
   }
 
-  private void updateGenerationLabel(int value){
+  private void updateGenerationLabel(int value) {
     generationNumberLabel.setText(Integer.toString(value));
   }
 }

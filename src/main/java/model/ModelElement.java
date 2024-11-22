@@ -1,5 +1,5 @@
 package model;
 
 public enum ModelElement {
-  FIREFIGHTER, FIRE
+  FIREFIGHTER, MOTORIZED_FIREFIGHTER, FIRE
 }
