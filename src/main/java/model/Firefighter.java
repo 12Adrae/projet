@@ -14,7 +14,7 @@ import java.util.Set;
 
 public class Firefighter {
     private Position position;
-    private final model.TargetStrategy targetStrategy;
+    final model.TargetStrategy targetStrategy;
 
     public Firefighter(Position position, model.TargetStrategy targetStrategy){
         this.position = position;
@@ -23,6 +23,10 @@ public class Firefighter {
 
     public Position getPosition(){
         return position;
+    }
+
+    public void setPosition(Position position){
+        this.position = position;
     }
 
     public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors){

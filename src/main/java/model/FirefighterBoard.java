@@ -4,24 +4,26 @@ import util.Position;
 
 import java.util.*;
 
+
 public class FirefighterBoard implements Board<List<ModelElement>> {
   private final int columnCount;
   private final int rowCount;
   private final int initialFireCount;
   private final int initialFirefighterCount;
   private final model.TargetStrategy targetStrategy = new model.TargetStrategy();
+  private List<Position> firefighterPositions;
   private List<Firefighter> firefighters;
-  private Fire fire;
-  private Map<Position, List<Position>> neighbors = new HashMap<>();
+  private Set<Position> firePositions;
+  private Map<Position, List<Position>> neighbors = new HashMap();
   private final Position[][] positions;
   private int step = 0;
   private final Random randomGenerator = new Random();
-  private List<Cloud> clouds;
 
   public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
     this.columnCount = columnCount;
     this.rowCount = rowCount;
     this.positions = new Position[rowCount][columnCount];
+    this.firefighters = new ArrayList<>();
     for (int column = 0; column < columnCount; column++)
       for (int row = 0; row < rowCount; row++)
         positions[row][column] = new Position(row, column);
@@ -40,19 +42,25 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   }
 
   public void initializeElements() {
-    clouds = new ArrayList<>();
-    firefighters = new ArrayList<>();
-    Set<Position> initialFirePositions = new HashSet<>();
+    firefighterPositions = new ArrayList<>();
+    firePositions = new HashSet<>();
 
-    for (int index = 0; index < initialFireCount; index++)
-      initialFirePositions.add(randomPosition());
-    fire = new Fire(initialFirePositions);
+    for (int index = 0; index < initialFireCount*2; index++)
+      firePositions.add(randomPosition());
 
-    for (int index = 0; index < initialFirefighterCount; index++)
-      firefighters.add(new Firefighter(randomPosition(), targetStrategy));
+    int motorizedCount = initialFirefighterCount/2;
 
-    for (int i = 0; i < 5; i++) {
-      clouds.add(new Cloud(randomPosition()));
+    for (int i = 0; i < motorizedCount; i++) {
+      MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy);
+      firefighters.add(motorizedFireFighter);
+      firefighterPositions.add(motorizedFireFighter.getPosition());
+    }
+
+    // Initialisation des pompiers réguliers
+    for (int i = 0; i < initialFirefighterCount - motorizedCount; i++) {
+      Firefighter firefighter = new Firefighter(randomPosition(), targetStrategy);
+      firefighters.add(firefighter);
+      firefighterPositions.add(firefighter.getPosition());
     }
   }
 
@@ -63,16 +71,23 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   @Override
   public List<ModelElement> getState(Position position) {
     List<ModelElement> result = new ArrayList<>();
-    for (Firefighter firefighter : firefighters)
-      if (firefighter.getPosition().equals(position))
-        result.add(ModelElement.FIREFIGHTER);
-    if (fire.getPositions().contains(position))
+
+    // Vérifie le type de chaque pompier
+    for (Firefighter firefighter : firefighters) {
+      if (firefighter.getPosition().equals(position)) {
+        if (firefighter instanceof MotorizedFireFighter) {
+          result.add(ModelElement.MOTORIZED_FIREFIGHTER);
+        } else {
+          result.add(ModelElement.FIREFIGHTER);
+        }
+      }
+    }
+    if (firePositions.contains(position)) {
       result.add(ModelElement.FIRE);
-    if (clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(position))) {
-      result.add(ModelElement.CLOUD);
     }
     return result;
   }
+
 
   @Override
   public int rowCount() {
@@ -87,20 +102,6 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   public List<Position> updateToNextGeneration() {
     List<Position> modifiedPositions = updateFirefighters();
     modifiedPositions.addAll(updateFires());
-    modifiedPositions.addAll(updateClouds(neighbors));
-
-// Parcourt chaque nuage dans la liste des nuages
-// Pour chaque nuage, on vérifie s'il se trouve à une position où il y a un feu.
-// Si un feu est présent à la position du nuage, ce dernier l'éteint en appelant la méthode extinguishFire.
-// La position du nuage (où le feu a été éteint) est ajoutée à la liste des positions modifiées.
-    for (Cloud cloud : clouds) {
-      Position cloudPosition = cloud.getPosition();
-      if (this.getState(cloudPosition).contains(ModelElement.FIRE)) {
-        cloud.extinguishFire(fire);
-        modifiedPositions.add(cloudPosition);
-      }
-    }
-
     step++;
     return modifiedPositions;
   }
@@ -108,10 +109,15 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   private List<Position> updateFires() {
     List<Position> modifiedPositions = new ArrayList<>();
     if (step % 2 == 0) {
-      fire.spread(neighbors);
-      modifiedPositions.addAll(fire.getPositions());
+      List<Position> newFirePositions = new ArrayList<>();
+      for (Position fire : firePositions) {
+        newFirePositions.addAll(neighbors.get(fire));
+      }
+      firePositions.addAll(newFirePositions);
+      modifiedPositions.addAll(newFirePositions);
     }
     return modifiedPositions;
+
   }
 
   @Override
@@ -121,11 +127,48 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
 
   private List<Position> updateFirefighters() {
     List<Position> modifiedPositions = new ArrayList<>();
+    List<Position> firefighterNewPositions = new ArrayList<>();
+
     for (Firefighter firefighter : firefighters) {
-      firefighter.moveTowardsFire(fire.getPositions(), neighbors);
-      firefighter.extinguishFiresAround(fire.getPositions(), neighbors);
-      modifiedPositions.add(firefighter.getPosition());
+      Position originalPosition = firefighter.getPosition();
+      Position newFirefighterPosition = originalPosition;
+
+      // Déplacer le pompier vers le feu le plus proche
+      if (firefighter instanceof MotorizedFireFighter) {
+        // Premier mouvement
+        Position firstMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
+        if (firstMove != null) {
+          newFirefighterPosition = firstMove;
+        }
+
+        // Deuxième mouvement
+        Position secondMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
+        if (secondMove != null) {
+          newFirefighterPosition = secondMove;
+        }
+      } else {
+        newFirefighterPosition = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
+      }
+
+      // Mettre à jour la position du pompier
+      firefighter.setPosition(newFirefighterPosition);
+      firefighterNewPositions.add(newFirefighterPosition);
+
+      // Éteindre les feux autour de la nouvelle position
+      extinguish(newFirefighterPosition);
+      List<Position> neighborFirePositions = neighbors.get(newFirefighterPosition).stream()
+              .filter(firePositions::contains).toList();
+      for (Position firePosition : neighborFirePositions) {
+        extinguish(firePosition);
+      }
+
+      // Ajouter les positions modifiées à la liste
+      modifiedPositions.add(originalPosition);
+      modifiedPositions.add(newFirefighterPosition);
+      modifiedPositions.addAll(neighborFirePositions);
     }
+
+    firefighterPositions = firefighterNewPositions;
     return modifiedPositions;
   }
 
@@ -135,48 +178,29 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     initializeElements();
   }
 
-  @Override
-  public void setState(List<ModelElement> state, Position position) {
-    fire.extinguish(position);
-    for (Firefighter firefighter : firefighters) {
-      if (firefighter.getPosition().equals(position)) {
-        firefighters.remove(firefighter);
-        break;
-      }
-    }
-    for (ModelElement element : state) {
-      switch (element) {
-        case FIRE -> fire.getPositions().add(position);
-        case FIREFIGHTER -> firefighters.add(new Firefighter(position, targetStrategy));
-      }
-    }
+  private void extinguish(Position position) {
+    firePositions.remove(position);
   }
 
-  /**
-   * Met à jour la position de chaque nuage et retourne une liste des positions modifiées.
-   *
-   * Pour chaque nuage, la méthode :
-   * 1. Récupère sa position actuelle (ancienne position).
-   * 2. Déplace le nuage vers une nouvelle position en fonction de ses voisins.
-   * 3. Si la position du nuage change, elle ajoute l'ancienne position et la nouvelle position
-   *    à la liste des positions modifiées.
-   *
-   * @param neighbors La carte des voisins qui permet au nuage de se déplacer.
-   * @return Une liste des positions qui ont été modifiées durant cette mise à jour (ancienne et nouvelle position).
-   */
 
-  private List<Position> updateClouds(Map<Position, List<Position>> neighbors) {
-    List<Position> modifiedPositions = new ArrayList<>();
-    for (Cloud cloud : clouds) {
-      Position oldPosition = cloud.getPosition();
-      cloud.move(neighbors);
-      Position newPosition = cloud.getPosition();
-
-      if (!oldPosition.equals(newPosition)) {
-        modifiedPositions.add(oldPosition);
-        modifiedPositions.add(newPosition);
+  @Override
+  public void setState(List<ModelElement> state, Position position) {
+    firePositions.remove(position);
+    firefighterPositions.remove(position);
+    for (ModelElement element : state) {
+      switch (element) {
+        case FIRE -> firePositions.add(position);
+        case FIREFIGHTER -> {
+          Firefighter firefighter = new Firefighter(position, targetStrategy);
+          firefighters.add(firefighter);
+          firefighterPositions.add(position);
+        }
+        case MOTORIZED_FIREFIGHTER -> {
+          MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(position, targetStrategy);
+          firefighters.add(motorizedFireFighter);
+          firefighterPositions.add(position);
+        }
       }
     }
-    return modifiedPositions;
   }
 }
