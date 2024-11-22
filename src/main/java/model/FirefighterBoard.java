@@ -45,10 +45,10 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     firefighterPositions = new ArrayList<>();
     firePositions = new HashSet<>();
 
-    for (int index = 0; index < initialFireCount; index++)
+    for (int index = 0; index < initialFireCount*2; index++)
       firePositions.add(randomPosition());
 
-    int motorizedCount = initialFirefighterCount / 2;
+    int motorizedCount = initialFirefighterCount/2;
 
     for (int i = 0; i < motorizedCount; i++) {
       MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy);
