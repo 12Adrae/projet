@@ -153,18 +153,20 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   }
 
   /**
-   * Met à jour la position de chaque nuage et retourne une liste des positions modifiées.
+   * Met à jour la position de chaque nuage, éteint les feux aux anciennes et nouvelles positions,
+   * et retourne une liste des positions modifiées.
    *
    * Pour chaque nuage, la méthode :
    * 1. Récupère sa position actuelle (ancienne position).
    * 2. Déplace le nuage vers une nouvelle position en fonction de ses voisins.
-   * 3. Si la position du nuage change, elle ajoute l'ancienne position et la nouvelle position
-   *    à la liste des positions modifiées.
+   * 3. Si la position du nuage change :
+   *    - Éteint le feu à l'ancienne position du nuage.
+   *    - Déplace le nuage à une nouvelle position et éteint le feu à cette nouvelle position.
+   * 4. Ajoute l'ancienne et la nouvelle position à la liste des positions modifiées.
    *
    * @param neighbors La carte des voisins qui permet au nuage de se déplacer.
-   * @return Une liste des positions qui ont été modifiées durant cette mise à jour (ancienne et nouvelle position).
+   * @return Une liste des positions où le feu a été éteint (ancienne et nouvelle position du nuage).
    */
-
   private List<Position> updateClouds(Map<Position, List<Position>> neighbors) {
     List<Position> modifiedPositions = new ArrayList<>();
     for (Cloud cloud : clouds) {
@@ -173,10 +175,14 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
       Position newPosition = cloud.getPosition();
 
       if (!oldPosition.equals(newPosition)) {
+        fire.extinguish(oldPosition);
         modifiedPositions.add(oldPosition);
+
+        fire.extinguish(newPosition);
         modifiedPositions.add(newPosition);
       }
     }
     return modifiedPositions;
   }
+
 }
