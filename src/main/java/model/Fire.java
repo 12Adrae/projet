@@ -39,6 +39,7 @@ public class Fire {
     public void spread(Map<Position, List<Position>> neighbors) {
         Set<Position> newFirePositions = new HashSet<>();
         for (Position firePosition : firePositions) {
+            if (!neighbors.containsKey(firePosition)) {}
             newFirePositions.addAll(neighbors.get(firePosition));
         }
         firePositions.addAll(newFirePositions); // Ajoute les nouvelles positions enflammées
