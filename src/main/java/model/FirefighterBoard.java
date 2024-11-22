@@ -16,6 +16,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   private final Position[][] positions;
   private int step = 0;
   private final Random randomGenerator = new Random();
+  private List<Cloud> clouds;
 
   public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
     this.columnCount = columnCount;
@@ -39,13 +40,20 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   }
 
   public void initializeElements() {
+    clouds = new ArrayList<>();
     firefighters = new ArrayList<>();
     Set<Position> initialFirePositions = new HashSet<>();
+
     for (int index = 0; index < initialFireCount; index++)
       initialFirePositions.add(randomPosition());
     fire = new Fire(initialFirePositions);
+
     for (int index = 0; index < initialFirefighterCount; index++)
       firefighters.add(new Firefighter(randomPosition(), targetStrategy));
+
+    for (int i = 0; i < 5; i++) {
+      clouds.add(new Cloud(randomPosition()));
+    }
   }
 
   private Position randomPosition() {
@@ -60,6 +68,9 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         result.add(ModelElement.FIREFIGHTER);
     if (fire.getPositions().contains(position))
       result.add(ModelElement.FIRE);
+    if (clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(position))) {
+      result.add(ModelElement.CLOUD);
+    }
     return result;
   }
 
@@ -76,6 +87,20 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   public List<Position> updateToNextGeneration() {
     List<Position> modifiedPositions = updateFirefighters();
     modifiedPositions.addAll(updateFires());
+    modifiedPositions.addAll(updateClouds(neighbors));
+
+// Parcourt chaque nuage dans la liste des nuages
+// Pour chaque nuage, on vérifie s'il se trouve à une position où il y a un feu.
+// Si un feu est présent à la position du nuage, ce dernier l'éteint en appelant la méthode extinguishFire.
+// La position du nuage (où le feu a été éteint) est ajoutée à la liste des positions modifiées.
+    for (Cloud cloud : clouds) {
+      Position cloudPosition = cloud.getPosition();
+      if (this.getState(cloudPosition).contains(ModelElement.FIRE)) {
+        cloud.extinguishFire(fire);
+        modifiedPositions.add(cloudPosition);
+      }
+    }
+
     step++;
     return modifiedPositions;
   }
@@ -125,5 +150,33 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         case FIREFIGHTER -> firefighters.add(new Firefighter(position, targetStrategy));
       }
     }
+  }
+
+  /**
+   * Met à jour la position de chaque nuage et retourne une liste des positions modifiées.
+   *
+   * Pour chaque nuage, la méthode :
+   * 1. Récupère sa position actuelle (ancienne position).
+   * 2. Déplace le nuage vers une nouvelle position en fonction de ses voisins.
+   * 3. Si la position du nuage change, elle ajoute l'ancienne position et la nouvelle position
+   *    à la liste des positions modifiées.
+   *
+   * @param neighbors La carte des voisins qui permet au nuage de se déplacer.
+   * @return Une liste des positions qui ont été modifiées durant cette mise à jour (ancienne et nouvelle position).
+   */
+
+  private List<Position> updateClouds(Map<Position, List<Position>> neighbors) {
+    List<Position> modifiedPositions = new ArrayList<>();
+    for (Cloud cloud : clouds) {
+      Position oldPosition = cloud.getPosition();
+      cloud.move(neighbors);
+      Position newPosition = cloud.getPosition();
+
+      if (!oldPosition.equals(newPosition)) {
+        modifiedPositions.add(oldPosition);
+        modifiedPositions.add(newPosition);
+      }
+    }
+    return modifiedPositions;
   }
 }
