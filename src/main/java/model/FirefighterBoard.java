@@ -22,6 +22,8 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
 
     private Fire fire;
 
+    private Set<Position> mountainPositions;
+
 
     public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
         this.columnCount = columnCount;
@@ -42,6 +44,8 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             }
         this.initialFireCount = initialFireCount;
         this.initialFirefighterCount = initialFirefighterCount;
+        this.mountainPositions = new HashSet<>();
+
         initializeElements();
     }
 
@@ -49,6 +53,14 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         clouds = new ArrayList<>();
         firefighterPositions = new ArrayList<>();
         firePositions = new HashSet<>();
+        mountainPositions = new HashSet<>();
+
+        while (mountainPositions.size() < 10) {
+            Position newPosition = randomPosition();
+            mountainPositions.add(newPosition);
+            System.out.println("Mountain Position: " + newPosition);  // Affiche la position générée
+        }
+
 
         for (int i = 0; i < 50; i++) {
             clouds.add(new Cloud(randomPosition()));
@@ -61,14 +73,14 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         int motorizedCount = initialFirefighterCount / 2;
 
         for (int i = 0; i < motorizedCount; i++) {
-            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy);
+            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy, mountainPositions);
             firefighters.add(motorizedFireFighter);
             firefighterPositions.add(motorizedFireFighter.getPosition());
         }
 
         // Initialisation des pompiers réguliers
         for (int i = 0; i < initialFirefighterCount - motorizedCount; i++) {
-            Firefighter firefighter = new Firefighter(randomPosition(), targetStrategy);
+            Firefighter firefighter = new Firefighter(randomPosition(), targetStrategy, mountainPositions);
             firefighters.add(firefighter);
             firefighterPositions.add(firefighter.getPosition());
         }
@@ -97,6 +109,10 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         }
         if (clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(position))) {
             result.add(ModelElement.CLOUD);
+        }
+
+        if (mountainPositions.contains(position)) {
+            result.add(ModelElement.MOUNTAIN);
         }
         return result;
     }
@@ -144,7 +160,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             for (Position fire : firePositions) {
                 //newFirePositions.addAll(neighbors.get(fire));
                 for (Position neighbor : neighbors.get(fire)) {
-                    if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor))) {
+                    if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor)) && !mountainPositions.contains(neighbor)) {
                         newFirePositions.add(neighbor);
                     }
                 }
@@ -173,13 +189,13 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             if (firefighter instanceof MotorizedFireFighter) {
                 // Premier mouvement
                 Position firstMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
-                if (firstMove != null) {
+                if (firstMove != null && !mountainPositions.contains(firstMove)) {
                     newFirefighterPosition = firstMove;
                 }
 
                 // Deuxième mouvement
                 Position secondMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
-                if (secondMove != null) {
+                if (secondMove != null && !mountainPositions.contains(secondMove)) {
                     newFirefighterPosition = secondMove;
                 }
             } else {
@@ -227,15 +243,16 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             switch (element) {
                 case FIRE -> firePositions.add(position);
                 case FIREFIGHTER -> {
-                    Firefighter firefighter = new Firefighter(position, targetStrategy);
+                    Firefighter firefighter = new Firefighter(position, targetStrategy,  mountainPositions);
                     firefighters.add(firefighter);
                     firefighterPositions.add(position);
                 }
                 case MOTORIZED_FIREFIGHTER -> {
-                    MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(position, targetStrategy);
+                    MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(position, targetStrategy, mountainPositions);
                     firefighters.add(motorizedFireFighter);
                     firefighterPositions.add(position);
                 }
+                case MOUNTAIN -> mountainPositions.add(position);
             }
         }
     }
