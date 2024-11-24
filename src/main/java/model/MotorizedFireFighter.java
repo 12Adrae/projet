@@ -13,22 +13,24 @@ public class MotorizedFireFighter extends Firefighter{
         super(position, targetStrategy, mountainPositions);
     }
 
-    //@Override
-    public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
+    @Override
+    public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors, Set<Position> mountainPositions) {
         Position current = getPosition();
 
-        //Premier mouvement
+        // Premier mouvement
         Position firstMove = targetStrategy.neighborClosestToFire(current, firePositions, neighbors);
-        if (firstMove != null) {
+        if (firstMove != null && !mountainPositions.contains(firstMove)) {
             current = firstMove;
         }
 
-        //DEuxieme mouvement
+        // Deuxième mouvement
         Position secondMove = targetStrategy.neighborClosestToFire(current, firePositions, neighbors);
-        if (secondMove != null) {
+        if (secondMove != null && !mountainPositions.contains(secondMove)) {
             current = secondMove;
         }
 
+        // Mise à jour de la position finale après deux mouvements
         setPosition(current);
     }
+
 }
