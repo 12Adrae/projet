@@ -20,7 +20,7 @@ import java.util.Set;
  * ou d'extinction des feux.
  *
  * Méthodes principales :
- * - void spread(Map<Position, List<Position>> neighbors) : propage les feux vers les cases voisines.
+ * - void spread(Map<Position, List<Position>> neighbors) : propage les feux vers les cases voisines sauf si elles ont des montagnes.
  * - void extinguish(Position position) : éteint le feu à une position spécifique.
  * - void extinguishAll(Set<Position> positions) : éteint les feux à plusieurs positions.
  */
@@ -36,13 +36,20 @@ public class Fire {
         return firePositions;
     }
 
-    public void spread(Map<Position, List<Position>> neighbors) {
+    public void spread(Map<Position, List<Position>> neighbors, Set<Position> mountainPositions) {
         Set<Position> newFirePositions = new HashSet<>();
+
         for (Position firePosition : firePositions) {
-            if (!neighbors.containsKey(firePosition)) {}
-            newFirePositions.addAll(neighbors.get(firePosition));
+            if (neighbors.containsKey(firePosition)) {
+                for (Position neighbor : neighbors.get(firePosition)) {
+                    if (!mountainPositions.contains(neighbor)) {
+                        newFirePositions.add(neighbor);
+                    }
+                }
+            }
         }
-        firePositions.addAll(newFirePositions); // Ajoute les nouvelles positions enflammées
+
+        firePositions.addAll(newFirePositions);
     }
 
     public void extinguish(Position position) {

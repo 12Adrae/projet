@@ -9,11 +9,11 @@ import java.util.Set;
 
 public class MotorizedFireFighter extends Firefighter{
 
-    public MotorizedFireFighter(Position position, model.TargetStrategy targetStrategy) {
-        super(position, targetStrategy);
+    public MotorizedFireFighter(Position position, model.TargetStrategy targetStrategy, Set<Position> mountainPositions) {
+        super(position, targetStrategy, mountainPositions);
     }
 
-    @Override
+    //@Override
     public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
         Position current = getPosition();
 

@@ -94,6 +94,9 @@ public class Controller {
     if (squareState.contains(ModelElement.CLOUD)) {
       return ViewElement.CLOUD;
     }
+    if (squareState.contains(ModelElement.MOUNTAIN)){
+      return ViewElement.MOUNTAIN;
+    }
     return ViewElement.EMPTY;
   }
 
