@@ -68,7 +68,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             clouds.add(new Cloud(randomPosition()));
         }
 
-        for (int index = 0; index < initialFireCount * 2; index++)
+        for (int index = 0; index < initialFireCount * 10; index++)
             firePositions.add(randomPosition());
         fire = new Fire(firePositions);
 
@@ -87,7 +87,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             firefighterPositions.add(firefighter.getPosition());
         }
 
-        while (roadPositions.size() < 50) {
+        while (roadPositions.size() < 10) {
             Position newPosition = randomPosition();
             roadPositions.add(newPosition);
             System.out.println("Road Position: " + newPosition);
