@@ -21,8 +21,9 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     private List<Cloud> clouds;
 
     private Fire fire;
-
     private Set<Position> mountainPositions;
+    private Set<Position> roadPositions;
+
 
 
     public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
@@ -45,6 +46,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         this.initialFireCount = initialFireCount;
         this.initialFirefighterCount = initialFirefighterCount;
         this.mountainPositions = new HashSet<>();
+        this.roadPositions = new HashSet<>();
 
         initializeElements();
     }
@@ -54,6 +56,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         firefighterPositions = new ArrayList<>();
         firePositions = new HashSet<>();
         mountainPositions = new HashSet<>();
+        roadPositions = new HashSet<>();
 
         while (mountainPositions.size() < 10) {
             Position newPosition = randomPosition();
@@ -61,28 +64,33 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             System.out.println("Mountain Position: " + newPosition);  // Affiche la position générée
         }
 
-
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 10; i++) {
             clouds.add(new Cloud(randomPosition()));
         }
 
-        for (int index = 0; index < initialFireCount * 20; index++)
+        for (int index = 0; index < initialFireCount * 2; index++)
             firePositions.add(randomPosition());
         fire = new Fire(firePositions);
 
         int motorizedCount = initialFirefighterCount / 2;
 
         for (int i = 0; i < motorizedCount; i++) {
-            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy, mountainPositions);
+            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy, mountainPositions,roadPositions);
             firefighters.add(motorizedFireFighter);
             firefighterPositions.add(motorizedFireFighter.getPosition());
         }
 
         // Initialisation des pompiers réguliers
         for (int i = 0; i < initialFirefighterCount - motorizedCount; i++) {
-            Firefighter firefighter = new Firefighter(randomPosition(), targetStrategy, mountainPositions);
+            Firefighter firefighter = new Firefighter(randomPosition(), targetStrategy, mountainPositions, roadPositions);
             firefighters.add(firefighter);
             firefighterPositions.add(firefighter.getPosition());
+        }
+
+        while (roadPositions.size() < 50) {
+            Position newPosition = randomPosition();
+            roadPositions.add(newPosition);
+            System.out.println("Road Position: " + newPosition);
         }
     }
 
@@ -114,6 +122,11 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         if (mountainPositions.contains(position)) {
             result.add(ModelElement.MOUNTAIN);
         }
+
+        if (roadPositions.contains(position)) {
+            result.add(ModelElement.ROUTE);
+        }
+
         return result;
     }
 
@@ -151,16 +164,17 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     }
 
 
-
-
     private List<Position> updateFires() {
         List<Position> modifiedPositions = new ArrayList<>();
         if (step % 2 == 0) {
             List<Position> newFirePositions = new ArrayList<>();
             for (Position fire : firePositions) {
-                //newFirePositions.addAll(neighbors.get(fire));
                 for (Position neighbor : neighbors.get(fire)) {
-                    if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor)) && !mountainPositions.contains(neighbor)) {
+                    // Vérifie que la position voisine n'est pas occupée par un nuage,
+                    // qu'elle n'est pas une montagne, et qu'elle n'est pas une route
+                    if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor))
+                            && !mountainPositions.contains(neighbor)
+                            && !roadPositions.contains(neighbor)) {
                         newFirePositions.add(neighbor);
                     }
                 }
@@ -168,9 +182,10 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             firePositions.addAll(newFirePositions);
             modifiedPositions.addAll(newFirePositions);
         }
-        return modifiedPositions;
 
+        return modifiedPositions;
     }
+
 
     @Override
     public int stepNumber() {
@@ -190,16 +205,32 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
                 // Premier mouvement
                 Position firstMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
                 if (firstMove != null && !mountainPositions.contains(firstMove)) {
-                    newFirefighterPosition = firstMove;
+                    if (roadPositions.contains(firstMove)) {
+                        newFirefighterPosition = firstMove;
+                    }else {
+                        newFirefighterPosition = firstMove;
+                    }
                 }
 
                 // Deuxième mouvement
                 Position secondMove = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
                 if (secondMove != null && !mountainPositions.contains(secondMove)) {
-                    newFirefighterPosition = secondMove;
+                    if (roadPositions.contains(secondMove)) { // Privilégie une position avec une route
+                        newFirefighterPosition = secondMove;
+                    }else {
+                        newFirefighterPosition = secondMove;
+                    }
                 }
             } else {
-                newFirefighterPosition = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
+                Position neighbor = targetStrategy.neighborClosestToFire(newFirefighterPosition, firePositions, neighbors);
+                if (neighbor != null && !mountainPositions.contains(neighbor)) {
+                    // Vérifie si la position est une route
+                    if (roadPositions.contains(neighbor)) {
+                        newFirefighterPosition = neighbor;
+                    } else {
+                        newFirefighterPosition = neighbor;
+                    }
+                }
             }
 
             // Mettre à jour la position du pompier
@@ -224,6 +255,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         return modifiedPositions;
     }
 
+
     @Override
     public void reset() {
         step = 0;
@@ -243,16 +275,18 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             switch (element) {
                 case FIRE -> firePositions.add(position);
                 case FIREFIGHTER -> {
-                    Firefighter firefighter = new Firefighter(position, targetStrategy,  mountainPositions);
+                    Firefighter firefighter = new Firefighter(position, targetStrategy,  mountainPositions, roadPositions);
                     firefighters.add(firefighter);
                     firefighterPositions.add(position);
                 }
                 case MOTORIZED_FIREFIGHTER -> {
-                    MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(position, targetStrategy, mountainPositions);
+                    MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(position, targetStrategy, mountainPositions, roadPositions);
                     firefighters.add(motorizedFireFighter);
                     firefighterPositions.add(position);
                 }
                 case MOUNTAIN -> mountainPositions.add(position);
+
+                case ROUTE -> roadPositions.add(position);
             }
         }
     }
