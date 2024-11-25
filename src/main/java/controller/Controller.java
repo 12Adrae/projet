@@ -103,6 +103,10 @@ public class Controller {
       return ViewElement.ROUTE;
     }
 
+    if (squareState.contains(ModelElement.ROCK)){
+      return ViewElement.ROCK;
+    }
+
     return ViewElement.EMPTY;
   }
 

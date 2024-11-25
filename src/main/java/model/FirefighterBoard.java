@@ -23,7 +23,8 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     private Fire fire;
     private Set<Position> mountainPositions;
     private Set<Position> roadPositions;
-
+    private Set<Position> rockyPositions;
+    private Map<Position, Integer> rockyFireDelays = new HashMap<>();  // Nouveau champ pour suivre les délais sur les rocailles
 
 
     public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
@@ -47,6 +48,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         this.initialFirefighterCount = initialFirefighterCount;
         this.mountainPositions = new HashSet<>();
         this.roadPositions = new HashSet<>();
+        this.rockyPositions = new HashSet<>();
 
         initializeElements();
     }
@@ -57,6 +59,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         firePositions = new HashSet<>();
         mountainPositions = new HashSet<>();
         roadPositions = new HashSet<>();
+        rockyPositions = new HashSet<>();
 
         while (mountainPositions.size() < 10) {
             Position newPosition = randomPosition();
@@ -72,10 +75,10 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             firePositions.add(randomPosition());
         fire = new Fire(firePositions);
 
-        int motorizedCount = initialFirefighterCount / 2;
+        int motorizedCount = initialFirefighterCount / 3;
 
         for (int i = 0; i < motorizedCount; i++) {
-            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy, mountainPositions,roadPositions);
+            MotorizedFireFighter motorizedFireFighter = new MotorizedFireFighter(randomPosition(), targetStrategy, mountainPositions, roadPositions);
             firefighters.add(motorizedFireFighter);
             firefighterPositions.add(motorizedFireFighter.getPosition());
         }
@@ -91,6 +94,12 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             Position newPosition = randomPosition();
             roadPositions.add(newPosition);
             System.out.println("Road Position: " + newPosition);
+        }
+
+        while (rockyPositions.size() < 10) {
+            Position newPosition = randomPosition();
+            rockyPositions.add(newPosition);
+            System.out.println("Rocky Position: " + newPosition);
         }
     }
 
@@ -126,6 +135,11 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         if (roadPositions.contains(position)) {
             result.add(ModelElement.ROUTE);
         }
+
+        if (rockyPositions.contains(position)) {
+            result.add(ModelElement.ROCK);
+        }
+
 
         return result;
     }
@@ -175,7 +189,22 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
                     if (!clouds.stream().anyMatch(cloud -> cloud.getPosition().equals(neighbor))
                             && !mountainPositions.contains(neighbor)
                             && !roadPositions.contains(neighbor)) {
-                        newFirePositions.add(neighbor);
+                        if (rockyPositions.contains(neighbor)) {
+                            if (!rockyFireDelays.containsKey(neighbor)) {
+                            rockyFireDelays.put(neighbor, 4);
+                            } else {
+                                int remainingDelay = rockyFireDelays.get(neighbor);
+                                if(remainingDelay>1){
+                                    rockyFireDelays.put(neighbor, remainingDelay - 1);  // Décrémenter le délai
+                                } else {
+                                    // Si le délai est écoulé, le feu se propage
+                                    newFirePositions.add(neighbor);
+                                    rockyFireDelays.remove(neighbor);  // Retirer le délai une fois que le feu se propage
+                                }
+                            }
+                        }else {
+                            newFirePositions.add(neighbor);
+                        }
                     }
                 }
             }
@@ -207,7 +236,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
                 if (firstMove != null && !mountainPositions.contains(firstMove)) {
                     if (roadPositions.contains(firstMove)) {
                         newFirefighterPosition = firstMove;
-                    }else {
+                    } else {
                         newFirefighterPosition = firstMove;
                     }
                 }
@@ -217,7 +246,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
                 if (secondMove != null && !mountainPositions.contains(secondMove)) {
                     if (roadPositions.contains(secondMove)) { // Privilégie une position avec une route
                         newFirefighterPosition = secondMove;
-                    }else {
+                    } else {
                         newFirefighterPosition = secondMove;
                     }
                 }
@@ -275,7 +304,7 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             switch (element) {
                 case FIRE -> firePositions.add(position);
                 case FIREFIGHTER -> {
-                    Firefighter firefighter = new Firefighter(position, targetStrategy,  mountainPositions, roadPositions);
+                    Firefighter firefighter = new Firefighter(position, targetStrategy, mountainPositions, roadPositions);
                     firefighters.add(firefighter);
                     firefighterPositions.add(position);
                 }
@@ -287,11 +316,13 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
                 case MOUNTAIN -> mountainPositions.add(position);
 
                 case ROUTE -> roadPositions.add(position);
+
+                case ROCK -> rockyPositions.add(position);
             }
         }
     }
 
-    private List<Position> updateClouds (Map < Position, List < Position >> neighbors){
+    private List<Position> updateClouds(Map<Position, List<Position>> neighbors) {
         List<Position> modifiedPositions = new ArrayList<>();
         for (Cloud cloud : clouds) {
             Position oldPosition = cloud.getPosition();
