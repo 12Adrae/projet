@@ -16,12 +16,15 @@ import java.util.HashSet;
 public class Firefighter {
     private Position position;
     final model.TargetStrategy targetStrategy;
-    private Set<Position> mountainPositions;
+    protected Set<Position> mountainPositions;
+    protected Set<Position> roadPositions;
 
-    public Firefighter(Position position, model.TargetStrategy targetStrategy, Set<Position> mountainPositions) {
+    public Firefighter(Position position, model.TargetStrategy targetStrategy, Set<Position> mountainPositions, Set<Position> roadPositions) {
         this.position = position;
         this.targetStrategy = targetStrategy;
         this.mountainPositions = mountainPositions != null ? mountainPositions : new HashSet<>();
+        this.roadPositions = roadPositions != null ? roadPositions : new HashSet<>();
+
     }
 
     public Position getPosition() {
@@ -32,25 +35,21 @@ public class Firefighter {
         this.position = position;
     }
 
-    public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors, Set<Position> mountainPositions) {
+    public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
         Position newPosition = targetStrategy.neighborClosestToFire(position, firePositions, neighbors);
-        if (newPosition != null && !mountainPositions.contains(newPosition)) {
+        if (newPosition != null && (!mountainPositions.contains(newPosition) || roadPositions.contains(newPosition))) {
             this.position = newPosition;
         }
     }
 
-    public void extinguishFiresAround(Set<Position> firePositions, Map<Position, List<Position>> neighbors, Set<Position> mountainPositions) {
-        // Éteint le feu à la position actuelle du pompier, s'il y en a un et que ce n'est pas une montagne
-        if (!mountainPositions.contains(position)) {
-            firePositions.remove(position);
-        }
+    public void extinguishFiresAround(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
+        // Éteindre le feu à la position actuelle
+        firePositions.remove(position);
 
-        // Éteint les feux dans les positions adjacentes
+        // Éteindre les feux dans les positions voisines
         List<Position> adjacentPositions = neighbors.get(position);
         for (Position neighbor : adjacentPositions) {
-            if (!mountainPositions.contains(neighbor)) {
-                firePositions.remove(neighbor);
-            }
+            firePositions.remove(neighbor);
         }
     }
 }
