@@ -12,3 +12,7 @@ Le reste du travail se trouve dans le package model :
 Nous avons créé les classes : Cloud (pour l'implémentation du comportement des nuages), Fire (pour l'implémentation du comportement du feu), FireFighter (pour l'implémentation du comportement des pompiers) et MotorizedFireFighter (pour l'implémentation du comportement des pompiers motorisés).
 Nous avons également modifié l'énumération ModelElement afin d'ajouter les nouveaux éléments ajoutés.
 Le plus gros du travail se trouve dans FireFighterBoard. Elle gère les positions des pompiers, des incendies, des nuages, des montagnes et des routes, ainsi que les interactions entre ces éléments. Elle initialise les éléments, gère leurs déplacements et propage le feu.
+
+##Membres
+Nana Hadiza BACHIR ABDOU
+Khadija AMMARI
