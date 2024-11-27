@@ -6,6 +6,74 @@ import java.util.*;
 
 
 public class FirefighterBoard implements Board<List<ModelElement>> {
+
+        private final int columnCount;
+        private final int rowCount;
+        private final ElementManager elementManager;
+        private final BoardUpdater boardUpdater;
+        private final ElementInitializer elementInitializer;
+        private int step = 0;
+
+        public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
+            this.columnCount = columnCount;
+            this.rowCount = rowCount;
+            this.elementManager = new ElementManager(columnCount, rowCount);
+            this.boardUpdater = new BoardUpdater(elementManager, this);
+            this.elementInitializer = new ElementInitializer(elementManager, initialFireCount, initialFirefighterCount,this);
+            initializeElements();
+        }
+
+        private void initializeElements() {
+            elementInitializer.initializeElements();
+        }
+
+        @Override
+        public List<ModelElement> getState(Position position) {
+            return elementManager.getState(position);
+        }
+
+        @Override
+        public void setState(List<ModelElement> state, Position position) {
+            elementManager.setState(state, position);
+        }
+
+        @Override
+        public int rowCount() {
+            return rowCount;
+        }
+
+        @Override
+        public int columnCount() {
+            return columnCount;
+        }
+
+        @Override
+        public List<Position> updateToNextGeneration() {
+            return boardUpdater.updateToNextGeneration();
+        }
+
+        @Override
+        public void reset() {
+            step = 0;
+            initializeElements();
+        }
+
+        @Override
+        public int stepNumber() {
+            return step;
+        }
+
+        public int getStep() {
+            return step;
+        }
+
+        public void incrementStep() {
+            step++;
+        }
+    }
+
+
+    /*
     private final int columnCount;
     private final int rowCount;
     private final int initialFireCount;
@@ -161,10 +229,10 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         modifiedPositions.addAll(updateFires());
         modifiedPositions.addAll(updateClouds(neighbors));
 
-// Parcourt chaque nuage dans la liste des nuages
-// Pour chaque nuage, on vérifie s'il se trouve à une position où il y a un feu.
-// Si un feu est présent à la position du nuage, ce dernier l'éteint en appelant la méthode extinguishFire.
-// La position du nuage (où le feu a été éteint) est ajoutée à la liste des positions modifiées.
+        // Parcourt chaque nuage dans la liste des nuages
+        // Pour chaque nuage, on vérifie s'il se trouve à une position où il y a un feu.
+        // Si un feu est présent à la position du nuage, ce dernier l'éteint en appelant la méthode extinguishFire.
+        // La position du nuage (où le feu a été éteint) est ajoutée à la liste des positions modifiées.
         for (Cloud cloud : clouds) {
             Position cloudPosition = cloud.getPosition();
             if (this.getState(cloudPosition).contains(ModelElement.FIRE)) {
@@ -220,6 +288,11 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
     public int stepNumber() {
         return step;
     }
+
+    public void incrementStep() {
+        step++;
+    }
+
 
     private List<Position> updateFirefighters() {
         List<Position> modifiedPositions = new ArrayList<>();
@@ -338,5 +411,5 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
             }
         }
         return modifiedPositions;
-    }
-}
+    }*/
+

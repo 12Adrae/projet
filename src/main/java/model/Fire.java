@@ -25,7 +25,7 @@ import java.util.Set;
  * - void extinguishAll(Set<Position> positions) : éteint les feux à plusieurs positions.
  */
 
-public class Fire {
+public class Fire implements FireStrategy{
     private final Set<Position> firePositions = new HashSet<>();
 
     public Fire(Set<Position> initialFirePositions) {
@@ -36,6 +36,8 @@ public class Fire {
         return firePositions;
     }
 
+
+    @Override
     public void spread(Map<Position, List<Position>> neighbors, Set<Position> mountainPositions) {
         Set<Position> newFirePositions = new HashSet<>();
 
@@ -52,10 +54,12 @@ public class Fire {
         firePositions.addAll(newFirePositions);
     }
 
+    @Override
     public void extinguish(Position position) {
         firePositions.remove(position);
     }
 
+    @Override
     public void extinguishAll(Set<Position> positions) {
         firePositions.removeAll(positions);
     }

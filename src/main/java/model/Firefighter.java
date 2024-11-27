@@ -13,7 +13,7 @@ import java.util.HashSet;
  *
  */
 
-public class Firefighter {
+public class Firefighter implements FirefighterStrategy{
     private Position position;
     final model.TargetStrategy targetStrategy;
     protected Set<Position> mountainPositions;
@@ -35,6 +35,7 @@ public class Firefighter {
         this.position = position;
     }
 
+    @Override
     public void moveTowardsFire(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
         Position newPosition = targetStrategy.neighborClosestToFire(position, firePositions, neighbors);
         if (newPosition != null && (!mountainPositions.contains(newPosition) || roadPositions.contains(newPosition))) {
@@ -42,6 +43,7 @@ public class Firefighter {
         }
     }
 
+    @Override
     public void extinguishFiresAround(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
         // Éteindre le feu à la position actuelle
         firePositions.remove(position);
