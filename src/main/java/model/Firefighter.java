@@ -1,55 +1,47 @@
 package model;
-
 import util.Position;
 import util.TargetStrategy;
 import java.util.*;
 
-public class Firefighter extends Entity {
-    private final TargetStrategy targetStrategy;
+public class Firefighter {
+    private Position position; //la position actuel de pompier
+    private TargetStrategy strategy = new TargetStrategy(); //le voisin le plus proche  au feu
 
-    public Firefighter(Position position) {
-        super(position);
-        this.targetStrategy = new TargetStrategy();
+
+    public Firefighter(Position initialPosition) {
+        this.position = initialPosition;
     }
 
-    // Se déplace vers le feu le plus proche
-    public void moveTowardsFire(Set<Position> firePositions,
-                                Map<Position, List<Position>> neighbors) {
-        Position newPosition = targetStrategy.neighborClosestToFire(
-                position, firePositions, neighbors
-        );
-        this.position = newPosition;
+    public Position getPosition() {
+        return position;
     }
 
-    // Éteint les feux autour de lui
-    public List<Position> extinguishNearbyFires(Map<Position, List<Position>> neighbors,
-                                                Set<Position> firePositions) {
-        List<Position> extinguishedPositions = new ArrayList<>();
+    public Position move(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
+        position = strategy.neighborClosestToFire(position, firePositions, neighbors);
+        return position;
+    }
 
-        // Éteindre le feu sur sa position
-        if (firePositions.contains(position)) {
-            extinguishedPositions.add(position);
+
+    public List<Position> extinguish(Fire fire, Map<Position, List<Position>> neighbors) {
+        List<Position> extinguished = new ArrayList<>();
+
+        // Sur la même case
+        if (fire.isOnFire(position)) {
+            fire.extinguish(position);
+            extinguished.add(position);
         }
 
-        // Éteindre les feux voisins
         for (Position neighbor : neighbors.get(position)) {
-            if (firePositions.contains(neighbor)) {
-                extinguishedPositions.add(neighbor);
+            if (fire.isOnFire(neighbor)) {
+                fire.extinguish(neighbor);
+                extinguished.add(neighbor);
             }
         }
 
-        return extinguishedPositions;
+        return extinguished;
     }
 
-    @Override
-    public void update(FirefighterBoard board) {
-        // Logique de déplacement et extinction
-        moveTowardsFire(board.getFirePositions(), board.getNeighbors());
-        List<Position> deadFires = extinguishNearbyFires(
-                board.getNeighbors(),
-                board.getFirePositions(
-                )
-        );
-        board.removeFires(deadFires);
-    }
+
+
+
 }
