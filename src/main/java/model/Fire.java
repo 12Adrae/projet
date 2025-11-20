@@ -1,28 +1,42 @@
 package model;
-
 import util.Position;
 import java.util.*;
 
-public class Fire extends Entity {
+public class Fire {
 
-    public Fire(Position position) {
-        super(position);
+    private Set<Position> positions;
+    private Map<Position, List<Position>> neighbors;
+
+    public Fire(Set<Position> initialPositions, Map<Position, List<Position>> neighbors) {
+        this.positions = new HashSet<>(initialPositions);
+        this.neighbors = neighbors;
+    }
+    //return les cases en feu
+    public Set<Position> getPositions() {
+        return positions;
     }
 
-    // Le feu se propage vers ses voisins
-    public List<Fire> spread(Map<Position, List<Position>> neighbors) {
-        List<Fire> newFires = new ArrayList<>();
-        for (Position neighbor : neighbors.get(position)) {
-            newFires.add(new Fire(neighbor));
+    //verification d'un feu sur une case
+    public boolean isOnFire(Position position) {
+        return positions.contains(position);
+    }
+
+    //extenction d'un feu
+    public void extinguish(Position position) {
+        positions.remove(position);
+    }
+
+    //la propagation du feu
+    public List<Position> spread(int step) {
+        List<Position> newFires = new ArrayList<>();
+        if (step % 2 == 0) { // feu se propage un tour sur deux
+            for (Position fire : positions) {
+                List<Position> voisins = neighbors.get(fire);
+                newFires.addAll(voisins);
+            }
+            positions.addAll(newFires);
         }
         return newFires;
     }
 
-    @Override
-    public void update(FirefighterBoard board) {
-        // Logique de propagation (tous les 2 tours)
-        if (board.stepNumber() % 2 == 0) {
-            board.addNewFires(this.spread(board.getNeighbors()));
-        }
-    }
 }
