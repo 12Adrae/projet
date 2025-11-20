@@ -1,4 +1,4 @@
-package model;
+package util;
 
 import util.Position;
 
@@ -12,8 +12,8 @@ public class TargetStrategy {
      * @param targets positions that are targeted.
      * @return the position next to the current position that is on the path to the closest target.
      */
-    Position neighborClosestToFire(Position position, Collection<Position> targets,
-                                   Map<Position,List<Position>>neighbors) {
+    public Position neighborClosestToFire(Position position, Collection<Position> targets,
+                                          Map<Position, List<Position>> neighbors) {
         Set<Position> seen = new HashSet<Position>();
         HashMap<Position, Position> firstMove = new HashMap<Position, Position>();
         Queue<Position> toVisit = new LinkedList<Position>(neighbors.get(position));
