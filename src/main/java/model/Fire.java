@@ -2,14 +2,22 @@ package model;
 import util.Position;
 import java.util.*;
 
-public class Fire {
+public class Fire implements Element {
 
     private Set<Position> positions;
     private Map<Position, List<Position>> neighbors;
+    private Map<Position,Cell> terrain;
+    private Map<Position,Integer> fireDelays=new HashMap<>();
 
-    public Fire(Set<Position> initialPositions, Map<Position, List<Position>> neighbors) {
+
+    public Fire(Set<Position> initialPositions, Map<Position, List<Position>> neighbors,Map<Position,Cell> terrain) {
         this.positions = new HashSet<>(initialPositions);
         this.neighbors = neighbors;
+        this.terrain = terrain;
+        for (Position position : positions) {
+            fireDelays.put(position, 0);
+        }
+
     }
     //return les cases en feu
     public Set<Position> getPositions() {
@@ -27,16 +35,45 @@ public class Fire {
     }
 
     //la propagation du feu
-    public List<Position> spread(int step) {
+    @Override
+    public void update(FirefighterBoard board) {
         List<Position> newFires = new ArrayList<>();
-        if (step % 2 == 0) { // feu se propage un tour sur deux
-            for (Position fire : positions) {
-                List<Position> voisins = neighbors.get(fire);
-                newFires.addAll(voisins);
+
+        for (Position firePos : positions) {
+            Cell cell = terrain.get(firePos);
+            int delay = fireDelays.get(firePos);
+
+            fireDelays.put(firePos, fireDelays.get(firePos)+1);
+            if(fireDelays.get(firePos) > delay) {
+                fireDelays.put(firePos, delay);
+                for (Position neighborPos : neighbors.get(firePos)) {
+                    Cell neighborCell = terrain.get(neighborPos);
+                    if (neighborCell.canFireSpread() && !fireDelays.containsKey(neighborPos)) {
+                        newFires.add(neighborPos);
+                        fireDelays.put(neighborPos, 0);
+                    }
+                }
+            }
             }
             positions.addAll(newFires);
-        }
-        return newFires;
+
     }
 
-}
+    //Le feu se met à jour lui-même
+    /*@Override
+    public void update(FirefighterBoard board) {
+        // Le feu se propage selon le tour
+        spread(board.stepNumber());
+
+
+    }*/
+
+    //retourne la première position
+    @Override
+    public Position getPosition() {
+        if (positions.isEmpty()) {
+            return null;
+        }
+        return positions.iterator().next();
+    }
+    }
