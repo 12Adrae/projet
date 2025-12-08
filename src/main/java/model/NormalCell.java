@@ -1,25 +1,23 @@
 package model;
 
-import util.Position;
-
-public class NormalCell extends Cell {
-
-    public NormalCell(Position position) {
-        super(position);
+public class NormalCell implements Terrain{
+    @Override
+    public boolean fireCanCross() {
+        return true;
     }
 
     @Override
-    public boolean canFireSpread() {
-        return true; //  Le feu se propage
+    public boolean firefighterCanCross() {
+        return true;
     }
 
     @Override
-    public boolean canEntityMove() {
-        return true; //  Tout le monde peut passer
+    public int fireDelay() {
+        return 0;  //aucun retard
+    }
+    @Override
+    public ModelElement getType() {
+        return ModelElement.NORMALCELL;
     }
 
-    @Override
-    public int getFireSpreadDelay() {
-        return 2; // Propagation tous les 2 tours
-    }
 }
