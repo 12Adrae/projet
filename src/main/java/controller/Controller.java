@@ -85,26 +85,24 @@ public class Controller {
     if(squareState.contains(ModelElement.FIREFIGHTER)){
       return ViewElement.FIREFIGHTER;
     }
+    if (squareState.contains(ModelElement.NORMALCELL)) {
+      return ViewElement.NORMALCELL;
+    }
     if (squareState.contains(ModelElement.FIRE)){
       return ViewElement.FIRE;
     }
     if (squareState.contains(ModelElement.CLOUD)) {
       return ViewElement.CLOUD;
     }
-    if (squareState.contains(ModelElement.MOTORIZEDFIREFIGHTER)) {
-      return ViewElement.MOTORIZEDFIREFIGHTER;
-    }
-    if (squareState.contains(ModelElement.NORMALCELL)) {
-      return ViewElement.NORMALCELL;
-    }
+
     if (squareState.contains(ModelElement.MOUNTAIN)) {
       return ViewElement.MOUNTAIN;
     }
     if (squareState.contains(ModelElement.ROAD)) {
       return ViewElement.ROAD;
     }
-    if (squareState.contains(ModelElement.ROCKYCELL)) {
-      return ViewElement.ROCKYCELL;
+    if (squareState.contains(ModelElement.ROCK)) {
+      return ViewElement.ROCK;
     }
     return ViewElement.EMPTY;
   }
