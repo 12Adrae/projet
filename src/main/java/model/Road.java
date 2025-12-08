@@ -1,31 +1,22 @@
 package model;
 
-import util.Position;
-
-/**
- * Cellule route
- * - Feu NE PEUT PAS se propager
- * - SEULEMENT les pompiers peuvent passer
- * - Chemin de secours
- */
-public class Road extends Cell {
-
-    public Road(Position position) {
-        super(position);
+public class Road implements Terrain{
+    @Override
+    public boolean fireCanCross() {
+        return false;
     }
 
     @Override
-    public boolean canFireSpread() {
-        return false; //  Feu bloqué sur routes
+    public boolean firefighterCanCross() {
+        return true;
     }
 
     @Override
-    public boolean canEntityMove() {
-        return true; // Pompiers peuvent passer
+    public int fireDelay() {
+        return 0; // pas de propagation
     }
-
     @Override
-    public int getFireSpreadDelay() {
-        return Integer.MAX_VALUE; // Pas de propagation
+    public ModelElement getType() {
+        return ModelElement.ROAD;
     }
 }
