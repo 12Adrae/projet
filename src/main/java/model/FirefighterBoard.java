@@ -1,36 +1,41 @@
 package model;
-
 import util.Position;
+import util.TargetStrategy;
 import java.util.*;
 
-public class FirefighterBoard implements Board<List<ModelElement>> {
 
+public class FirefighterBoard implements Board<List<ModelElement>> {
   private final int columnCount;
   private final int rowCount;
   private final int initialFireCount;
   private final int initialFirefighterCount;
-
-  private List<Element> allElements; // UNE SEULE liste pour TOUS
-  private Fire fire; //  Référence pour accès rapide
-
-  private Map<Position, List<Position>> neighbors = new HashMap();
-  private Map<Position, Cell> terrain = new HashMap();
+  private final int initialCloudCount;
+  private final int initialMotorizedFireFightersCount;
+  private final List<Element> elements = new ArrayList<>();
+  private final Map<Position, Terrain> terrainMap = new HashMap<>();
+  private final Map<Position, List<Position>> neighbors = new HashMap(); //voisin de chaque case
   private final Position[][] positions;
   private int step = 0;
   private final Random randomGenerator = new Random();
 
-  public FirefighterBoard(int columnCount, int rowCount, int initialFireCount, int initialFirefighterCount) {
+  //créer la grille et initialise les positions
+  public FirefighterBoard(
+          int columnCount,
+          int rowCount,
+          int initialFireCount,
+          int initialFirefighterCount
+  ) {
     this.columnCount = columnCount;
     this.rowCount = rowCount;
+    this.initialFireCount = initialFireCount;
+    this.initialFirefighterCount = initialFirefighterCount;
+    this.initialCloudCount = 3;
+    this.initialMotorizedFireFightersCount = 1;
+    //creation matrice positions
     this.positions = new Position[rowCount][columnCount];
-    this.allElements = new ArrayList<>();
-
-    // Initialiser les positions
     for (int column = 0; column < columnCount; column++)
       for (int row = 0; row < rowCount; row++)
         positions[row][column] = new Position(row, column);
-
-    // Initialiser les voisins
     for (int column = 0; column < columnCount; column++)
       for (int row = 0; row < rowCount; row++) {
         List<Position> list = new ArrayList<>();
@@ -40,113 +45,74 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
         if (column < columnCount - 1) list.add(positions[row][column + 1]);
         neighbors.put(positions[row][column], list);
       }
-
-    this.initialFireCount = initialFireCount;
-    this.initialFirefighterCount = initialFirefighterCount;
-    initializeTerrain();
-    initializeElements();
-  }
-
-  private void initializeTerrain() {
-    // terrain normal
-    for (int col = 0; col < columnCount; col++) {
-      for (int row = 0; row < rowCount; row++) {
-        Position pos = positions[row][col];
-        terrain.put(pos, new NormalCell(pos));
-      }
-    }
-
-    // Ajout montagnes / routes / rocailles
-
-    for (int i = 0; i < (rowCount * columnCount) / 10; i++) {
-      Position pos = randomPosition();
-      terrain.put(pos, new Mountain(pos));
-    }
-
-    for (int i = 0; i < (rowCount * columnCount) / 20; i++) {
-      Position pos = randomPosition();
-      terrain.put(pos, new Road(pos));
-    }
-
-    for (int i = 0; i < (rowCount * columnCount) / 20; i++) {
-      Position pos = randomPosition();
-      terrain.put(pos, new RockyCell(pos));
-
-    }
-  }
-
-
-  private void initializeElements() {
-    allElements.clear();
-    // Créer le feu
-    Set<Position> initialFires = new HashSet<>();
-    for (int i = 0; i < initialFireCount; i++) {
-      initialFires.add(randomPosition());
-    }
-    fire = new Fire(initialFires, neighbors,terrain);
-    allElements.add(fire);
-
-    // Créer les pompiers
-    for (int i = 0; i < initialFirefighterCount; i++) {
-      Firefighter ff = new Firefighter(randomPosition());
-      allElements.add(ff);
-    }
-
-    // Créer les nuages
-    int cloudCount = (rowCount * columnCount) / 30;
-    ;
-    for (int i = 0; i < cloudCount; i++) {
-      Cloud cloud = new Cloud(randomPosition());
-      allElements.add(cloud);
-    }
-
-    // Créer les pompiers motorisés
-    int motorizedCount = 10;
-    for (int i = 0; i < motorizedCount; i++) {
-      MotorizedFirefighter mf = new MotorizedFirefighter(randomPosition());
-      allElements.add(mf);
-    }
-
-
+    reset();
   }
 
   private Position randomPosition() {
-    int r = randomGenerator.nextInt(rowCount);
-    int c = randomGenerator.nextInt(columnCount);
-    return positions[r][c];   // <-- IMPORTANT
+    return new Position(
+            randomGenerator.nextInt(rowCount),
+            randomGenerator.nextInt(columnCount)
+    );
   }
-
-  /*private Position randomPosition() {
-    return new Position(randomGenerator.nextInt(rowCount), randomGenerator.nextInt(columnCount));
-  }*/
 
   @Override
   public List<ModelElement> getState(Position position) {
     List<ModelElement> result = new ArrayList<>();
 
-    for (Element e : allElements) {
-      if (e.getPosition() != null && e.getPosition().equals(position)) {
-        if (e instanceof Firefighter) result.add(ModelElement.FIREFIGHTER);
-        if (e instanceof MotorizedFirefighter) result.add(ModelElement.MOTORIZEDFIREFIGHTER);
-        if (e instanceof Cloud) result.add(ModelElement.CLOUD);
+    Terrain t = terrainMap.get(position);
+    result.add(t.getType());
 
+    for (Element e : elements) {
+      if (e.getPositions().contains(position)) {
+        result.add(e.getType());
       }
     }
-
-    Cell cell = terrain.get(position);
-    if (cell != null) {
-      if (cell instanceof NormalCell) result.add(ModelElement.NORMALCELL);
-      else if (cell instanceof Mountain) result.add(ModelElement.MOUNTAIN);
-      else if (cell instanceof Road) result.add(ModelElement.ROAD);
-      else if (cell instanceof RockyCell) result.add(ModelElement.ROCKYCELL);
-    }
-
-    if (fire.isOnFire(position)) {
-      result.add(ModelElement.FIRE);
-    }
-
     return result;
   }
+
+
+  private void initTerrain() {
+    terrainMap.clear();
+    int mountainCount = (columnCount * rowCount) / 10;
+    for (int i = 0; i < mountainCount; i++)
+      terrainMap.put(randomPosition(), TerrainFactory.createMountain());
+    int y = rowCount / 2;
+    for (int col = 0; col < columnCount; col++) {
+      Position p = randomPosition();
+      if (!(terrainMap.get(p) instanceof Mountain))
+        terrainMap.put(p, TerrainFactory.createRoad());
+    }
+    int rockCount = (columnCount * rowCount) / 20;
+    for (int i = 0; i < rockCount; i++) {
+      Position p = randomPosition();
+      if (!(terrainMap.get(p) instanceof Mountain))
+        terrainMap.put(p, TerrainFactory.createRock());
+    }
+    for (int r = 0; r < rowCount; r++)
+      for (int c = 0; c < columnCount; c++)
+        terrainMap.putIfAbsent(positions[r][c], TerrainFactory.createNormal());
+
+
+  }
+
+
+  private void initElements() {
+    elements.clear();
+    Set<Position> fires = new HashSet<>();
+    for (int i = 0; i < initialFireCount; i++)
+      fires.add(randomPosition());
+    elements.add(new Fire(fires, neighbors));  // Multi-case (cas spécial)
+    for (int i = 0; i < initialFirefighterCount; i++)
+      elements.add(ElementFactory.create(ModelElement.FIREFIGHTER,
+              randomPosition(), neighbors));
+    for (int i = 0; i < initialCloudCount; i++)
+      elements.add(ElementFactory.create(ModelElement.CLOUD,
+              randomPosition(), neighbors));
+    for (int i = 0; i < initialMotorizedFireFightersCount; i++)
+      elements.add(ElementFactory.create(ModelElement.MOTORIZEDFIREFIGHTER,
+              randomPosition(), neighbors));
+  }
+
 
   @Override
   public int rowCount() {
@@ -161,19 +127,12 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
 
   @Override
   public List<Position> updateToNextGeneration() {
-    List<Position> modifiedPositions = new ArrayList<>();
-
-    for (Element element : allElements) {
-      Position oldPos = element.getPosition();
-      element.update(this);
-      Position newPos = element.getPosition();
-
-      if (oldPos != null) modifiedPositions.add(oldPos);
-      if (newPos != null) modifiedPositions.add(newPos);
+    List<Position> modified = new ArrayList<>();
+    for (Element e : elements) {
+      modified.addAll(e.update(neighbors, this));
     }
-
     step++;
-    return modifiedPositions;
+    return modified;
   }
 
   @Override
@@ -184,65 +143,25 @@ public class FirefighterBoard implements Board<List<ModelElement>> {
   @Override
   public void reset() {
     step = 0;
-    allElements.clear();
-    initializeElements();
+    initTerrain();
+    initElements();
   }
+
 
   @Override
   public void setState(List<ModelElement> state, Position position) {
-    //Effacer l'ancienne case
-    fire.extinguish(position);
-    allElements.removeIf(e -> e instanceof Firefighter && e.getPosition().equals(position));
-
-    for (ModelElement element : state) {
-      switch (element) {
-        case FIRE -> {
-          if (fire != null) {
-            fire.getPositions().add(position);
-          }
-        }
-        case FIREFIGHTER -> {
-          Firefighter ff = new Firefighter(position);
-          allElements.add(ff);
-        }
-        case CLOUD -> {
-          allElements.add(new Cloud(position));
-        }
-        case MOTORIZEDFIREFIGHTER -> {
-          MotorizedFirefighter mf = new MotorizedFirefighter(position);
-          allElements.add(mf);
-        }
-        case NORMALCELL ->{
-          NormalCell nc=new NormalCell(position);
-          allElements.add((Element) nc);
-        }
-        case ROAD -> {
-          Road r=new Road(position);
-          allElements.add((Element) r);
-        }
-        case MOUNTAIN -> {
-          Mountain m=new Mountain(position);
-          allElements.add((Element) m);
-        }
-        case ROCKYCELL -> {
-          RockyCell r=new RockyCell(position);
-          allElements.add((Element) r);
-        }
-
-      }
+    // On retire tous les éléments présents sur cette case
+    elements.removeIf(e -> e.getPositions().contains(position));
+    // On ajoute les nouveaux éléments via la factory
+    for (ModelElement type : state) {
+      elements.add(ElementFactory.create(type, position, neighbors));
     }
   }
 
-
-  public Fire getFire() {
-    return fire;
+  public Terrain getTerrain(Position p) {
+    return terrainMap.get(p);
   }
-
-  public Map<Position, List<Position>> getNeighbors() {
-    return neighbors;
-  }
-
-  public Map<Position, Cell> getTerrain() {
-    return terrain;
+  public List<Element> getElements() {
+    return elements;
   }
 }
