@@ -3,95 +3,68 @@ import util.Position;
 import util.TargetStrategy;
 import java.util.*;
 
-public class Firefighter implements Element {
-    public Position position; //la position actuel de pompier
-    public TargetStrategy strategy = new TargetStrategy(); //le voisin le plus proche  au feu
-    public Map<Position, Cell> terrain;
 
+public class Firefighter implements Element {
+
+    private Position position;
+    private TargetStrategy strategy = new TargetStrategy();
 
     public Firefighter(Position initialPosition) {
         this.position = initialPosition;
     }
 
-    /*public Position move(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
-        Position newPosition = strategy.neighborClosestToFire(position,firePositions,neighbors);
-        if(terrain != null) {
-            Cell target = terrain.get(newPosition);
-            if(!target.canEntityMove()) return position;
-        }
-
-
-    position = newPosition;
-    return position;
-}*/
-
-    public Position move(Set<Position> firePositions, Map<Position, List<Position>> neighbors) {
-
-
-        List<Position> available = new ArrayList<>();
-        for (Position p : neighbors.get(position)) {
-            Cell c = terrain.get(p);
-
-            if (c == null || c.canEntityMove()) {
-                available.add(p);
-            }
-        }
-
-        if (available.isEmpty()) {
-            return position;
-        }
-
-        Position next = strategy.neighborClosestToFire(position, firePositions, neighbors);
-
-        position = next;
-        return next;
+    @Override
+    public Set<Position> getPositions() {
+        return Set.of(position);
     }
-
-
-
-
-
-
-    public List<Position> extinguish(Fire fire, Map<Position, List<Position>> neighbors) {
-        List<Position> extinguished = new ArrayList<>();
-
-        // Sur la même case
-        if (fire.isOnFire(position)) {
-            fire.extinguish(position);
-            extinguished.add(position);
-        }
-
-        List<Position> voisins = neighbors.get(position);
-        if (voisins != null) {
-            for (Position neighbor : voisins) {
-                if (fire.isOnFire(neighbor)) {
-                    fire.extinguish(neighbor);
-                    extinguished.add(neighbor);
-                }
-            }
-        }
-
-        return extinguished;
-    }
-
-
 
     @Override
-    public Position getPosition() {
+    public ModelElement getType() {
+        return ModelElement.FIREFIGHTER;
+    }
+
+    public Position move(Set<Position> firePositions,
+                         Map<Position, List<Position>> neighbors) {
+
+        position = strategy.neighborClosestToFire(position, firePositions, neighbors);
         return position;
     }
 
-
     @Override
-    public void update(FirefighterBoard board) {
+    public List<Position> update(Map<Position, List<Position>> neighbors,
+                                 FirefighterBoard board) {
 
-        if (terrain == null) {
-            terrain = board.getTerrain();
+        List<Position> modified = new ArrayList<>();
+        Position oldPos = position;
+
+        // récupérer l'élément Fire dans la liste des elements
+        Fire fire = null;
+        for (Element e : board.getElements()) {
+            if (e instanceof Fire f) {
+                fire = f;
+                break;
+            }
         }
-        // Se déplacer
-        move(board.getFire().getPositions(), board.getNeighbors());
-        // Éteindre les feux
-        extinguish(board.getFire(), board.getNeighbors());
-    }
+        // move
+        Position newPos = move(fire.getPositions(), neighbors);
 
+        modified.add(oldPos);
+        modified.add(newPos);
+
+        // extinction sur place
+        if (fire.isOnFire(newPos)) {
+            fire.extinguish(newPos);
+            modified.add(newPos);
+        }
+
+        // extinction autour
+        for (Position neighbor : neighbors.get(newPos)) {
+            if (fire.isOnFire(neighbor)) {
+                fire.extinguish(neighbor);
+                modified.add(neighbor);
+            }
+        }
+
+        return modified;
     }
+}
