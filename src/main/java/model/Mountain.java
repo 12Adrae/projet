@@ -1,26 +1,24 @@
 package model;
 
-import util.Position;
-
-
-public class Mountain extends Cell {
-
-    public Mountain(Position position) {
-        super(position);
+public class Mountain implements Terrain{
+    @Override
+    public boolean fireCanCross() {
+        return false;
     }
 
     @Override
-    public boolean canFireSpread() {
-        return false; // Feu bloqué
+    public boolean firefighterCanCross() {
+        return false;
     }
 
     @Override
-    public boolean canEntityMove() {
-        return false; // Tout le monde bloqué
+    public int fireDelay() {
+        //Le feu NE se propage jamais
+        return Integer.MAX_VALUE;
+    }
+    @Override
+    public ModelElement getType() {
+        return ModelElement.MOUNTAIN;
     }
 
-    @Override
-    public int getFireSpreadDelay() {
-        return Integer.MAX_VALUE; // Jamais de propagation
-    }
 }
