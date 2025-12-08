@@ -2,78 +2,62 @@ package model;
 import util.Position;
 import java.util.*;
 
+
 public class Fire implements Element {
 
-    private Set<Position> positions;
+    private Set<Position> firePositions;
     private Map<Position, List<Position>> neighbors;
-    private Map<Position,Cell> terrain;
-    private Map<Position,Integer> fireDelays=new HashMap<>();
+    private int step = 0;
 
-
-    public Fire(Set<Position> initialPositions, Map<Position, List<Position>> neighbors,Map<Position,Cell> terrain) {
-        this.positions = new HashSet<>(initialPositions);
+    public Fire(Set<Position> initialPositions,
+                Map<Position, List<Position>> neighbors) {
+        this.firePositions = new HashSet<>(initialPositions);
         this.neighbors = neighbors;
-        this.terrain = terrain;
-        for (Position position : positions) {
-            fireDelays.put(position, 0);
-        }
-
-    }
-    //return les cases en feu
-    public Set<Position> getPositions() {
-        return positions;
     }
 
-    //verification d'un feu sur une case
-    public boolean isOnFire(Position position) {
-        return positions.contains(position);
-    }
-
-    //extenction d'un feu
-    public void extinguish(Position position) {
-        positions.remove(position);
-    }
-
-    //la propagation du feu
     @Override
-    public void update(FirefighterBoard board) {
+    public Set<Position> getPositions() {
+        return firePositions;
+    }
+
+    public boolean isOnFire(Position position) {
+        return firePositions.contains(position);
+    }
+
+    public void extinguish(Position position) {
+        firePositions.remove(position);
+    }
+
+    @Override
+    public ModelElement getType() {
+        return ModelElement.FIRE;
+    }
+
+    @Override
+    public List<Position> update(Map<Position, List<Position>> ignored, FirefighterBoard board) {
+
         List<Position> newFires = new ArrayList<>();
 
-        for (Position firePos : positions) {
-            Cell cell = terrain.get(firePos);
-            int delay = fireDelays.get(firePos);
+        if (step % 2 == 0) {
 
-            fireDelays.put(firePos, fireDelays.get(firePos)+1);
-            if(fireDelays.get(firePos) > delay) {
-                fireDelays.put(firePos, delay);
-                for (Position neighborPos : neighbors.get(firePos)) {
-                    Cell neighborCell = terrain.get(neighborPos);
-                    if (neighborCell.canFireSpread() && !fireDelays.containsKey(neighborPos)) {
-                        newFires.add(neighborPos);
-                        fireDelays.put(neighborPos, 0);
-                    }
+            for (Position p : firePositions) {
+                for (Position neighbor : neighbors.get(p)) {
+
+                    Terrain t = board.getTerrain(neighbor);
+
+                    if (!t.fireCanCross()) continue;
+
+                    if (t.fireDelay() > 0 &&
+                            (step / 2) % t.fireDelay() != 0)
+                        continue;
+                    newFires.add(neighbor);
                 }
             }
-            }
-            positions.addAll(newFires);
 
-    }
-
-    //Le feu se met à jour lui-même
-    /*@Override
-    public void update(FirefighterBoard board) {
-        // Le feu se propage selon le tour
-        spread(board.stepNumber());
-
-
-    }*/
-
-    //retourne la première position
-    @Override
-    public Position getPosition() {
-        if (positions.isEmpty()) {
-            return null;
+            firePositions.addAll(newFires);
         }
-        return positions.iterator().next();
+
+        step++;
+        return newFires;
     }
-    }
+}
