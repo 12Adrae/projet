@@ -6,7 +6,7 @@
 
 # Diagramme de classes:
 <p align="center">
-  <img src="image/diagramme.png" width="1200">
+  <img src="diagramme.png" width="1200">
 </p>
 
 
